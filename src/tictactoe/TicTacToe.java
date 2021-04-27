@@ -1,35 +1,47 @@
 package tictactoe;
 
+import java.util.ArrayList;
+import java.util.Random;
+import java.util.function.Consumer;
+
+import javax.swing.JButton;
+import javax.swing.JPanel;
+import javax.swing.JLabel;
+import javax.swing.JFrame;
+import javax.swing.plaf.FontUIResource;
+import javax.swing.border.EtchedBorder;
+
+import java.awt.Font;
+import java.awt.GridLayout;
+import java.awt.BorderLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-import java.util.ArrayList;
-import java.util.Random;
+public class TicTacToe extends JFrame {
 
-enum State {
-    ATTEMPT("Game is not started"),
-    PROCESS("Game not finished"),
-    WIN(" wins"),
-    DRAW("Draw"),
-    EXIT("");
-    State(String message) {
-        this.message = message;
+    enum State {
+        ATTEMPT("Game is not started"),
+        PROCESS("Game not finished"),
+        WIN(" wins"),
+        DRAW("Draw"),
+        EXIT("");
+        State(String message) {
+            this.message = message;
+        }
+        final String message;
     }
-    final String message;
-}
+    
+    enum Owner {
+    
+        E(" "), X("X"), O("O");
+    
+        Owner(String name) {
+            this.sName = name;
+        }
+    
+        final String sName;
+    }    
 
-enum Owner {
-
-    E(" "), X("X"), O("O");
-
-    Owner(String name) {
-        this.sname = name;
-    }
-
-    final String sname;
-}
-
-public class TicTacToe {
     enum PlayerType {
         HUMAN("Humnan"), COMPUTER("Computer");
         PlayerType(String text) {
@@ -38,12 +50,172 @@ public class TicTacToe {
         final String text;
     }
 
-    private class Round {
+    static class MenuPanel extends JPanel {
 
+        static class Button extends JButton {
+            Consumer<Button> handle;
+    
+            Button(String name, String text) {
+                super(text);
+                handle = null;
+    
+                setName(name);
+                setVisible(true);
+                setFocusPainted(false);
+                addActionListener(x -> {
+                    if (handle != null) {
+                        handle.accept(this);
+                    }
+                });
+            }
+        }
+    
+        MenuPanel(int width, int height) {
+            super();
+    
+            player1 = new Button("ButtonPlayer1", "Human");
+            player2 = new Button("ButtonPlayer2", "Human");
+            reset = new Button("ButtonStartReset", "Start");
+    
+            setLayout(new GridLayout(1, 3));
+            
+            add(player1);
+            add(reset);
+            add(player2);
+            //
+            setBorder(new EtchedBorder(EtchedBorder.LOWERED));
+            setBounds(0, 0, width, height);
+        }
+    
+        @Override
+        public void setEnabled(boolean enabled) {
+            player1.setEnabled(enabled);
+            player2.setEnabled(enabled);
+    
+            reset.setEnabled(enabled);
+    
+            super.setEnabled(enabled);
+        }
+    
+        Button player1;
+        Button player2;
+        Button reset;
+    }
+    
+    static class StatusBar extends JPanel {
+    
+        StatusBar(int width, int height) {
+            super();
+            message = new JLabel();
+            message.setText("Status");
+            message.setName("LableStatus");
+    
+            setLayout(new BorderLayout());
+            add(message, BorderLayout.SOUTH);
+            setBorder(new EtchedBorder(EtchedBorder.LOWERED));
+    
+            message.setLocation(10, 0);
+            message.setVisible(true);
+            message.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
+            
+            setSize(width, height);
+            setBounds(0, 0, width, height);
+        }
+
+        void update(String message) {
+            this.message.setText(message);
+        }
+        JLabel message;
+    }
+    
+    static class Cell extends JButton {
+        final int x;
+        final int y;
+        Owner owner = Owner.E;
+        Consumer<Cell> handle;
+    
+        Cell(int x, int y, String name) {
+            super();
+            this.x = x;
+            this.y = y;
+            setName(name);
+            setFocusPainted(false);
+            setFont(new FontUIResource("Arial", FontUIResource.BOLD, 75));
+            setVisible(true);
+            addActionListener(a -> {
+                if (handle != null) {
+                    handle.accept(this);
+                }
+            });
+        }
+        void update(Owner owner) {
+            this.owner = owner;
+            setText(owner.sName);
+        }
+        void update(Owner owner, boolean b) {
+            this.owner = owner;
+            setText(owner.sName);
+            setEnabled(b);
+        }
+    }
+    
+    static class Desk extends JPanel {
+    
+        Desk(int tx, int ty) {
+            super();
+            list = new Cell[tx * ty];
+            map = new Cell[tx][ty];
+    
+            int n = tx * ty;
+            setLayout(new GridLayout(tx, ty));
+            for (int i = 0; i < n; i++) {
+                int x = i / tx;
+                int y = i % tx;
+                String name = String.format("Button%c%d", 'A' + y, tx - x);
+                Cell c = new Cell(x, y, name);
+                list[i] = c;
+                map[x][y] = c;
+                add(c);
+            }
+            setBorder(new EtchedBorder(EtchedBorder.LOWERED));
+        }
+    
+        @Override
+        public void setEnabled(boolean enabled) {
+            for (int x = 0; x < 3; x++) {
+                for (int y = 0; y < 3; y++) {
+                    map[x][y].setEnabled(enabled);
+                }
+            }
+            super.setEnabled(enabled);
+        }
+    
+        @Override
+        public void setFont(Font font) {
+            if (list != null) {
+                for (JButton b : list) {
+                    b.setFont(font);
+                }
+            }
+            super.setFont(font);
+        }
+    
+        public void update(Owner owner, boolean b) {
+            for (Cell a : list) {
+                a.update(owner, b);
+            }
+        }
+    
+        final Cell[][] map;
+        final Cell[] list;
+    }
+    
+    private class Round {
+    
         Round() {
             rand = new Random();
-            map = hWind.getMap();
-            origin = hWind.getOrigin();
+            map = desk.map;
+            origin = desk.list;
             reset();
         }
     
@@ -148,70 +320,58 @@ public class TicTacToe {
     }
 
     class WinHandle {
-        private final Window window;
 
         WinHandle() {
-            this.window = new Window();
-            this.window.addWindowListener(new WindowAdapter() {
+            addWindowListener(new WindowAdapter() {
                 @Override
                 public void windowClosing(WindowEvent e) {
                     state = State.EXIT;
                     super.windowClosing(e);
                 }
             });
-            for (Cell c : window.desk.list) {
+            for (Cell c : desk.list) {
                 c.handle = x -> {
                     round.apply(x);
                     round.playRound();
                 };
             }
-            window.panel.player1.handle = x -> {
+            panel.player1.handle = x -> {
                 togglePlayerAi(0);
                 updatePlayer1();
             };
-            window.panel.player2.handle = x -> {
+            panel.player2.handle = x -> {
                 togglePlayerAi(1);
                 updatePlayer2();
             };
-            window.panel.reset.handle = x -> playerClickStartReset();
+            panel.reset.handle = x -> playerClickStartReset();
         }
         void update() {
             if (State.PROCESS == state) {
-                window.panel.player1.setEnabled(false);
-                window.panel.player2.setEnabled(false);
-                window.panel.reset.setText("Reset");
-                window.desk.setEnabled(true);
+                panel.player1.setEnabled(false);
+                panel.player2.setEnabled(false);
+                panel.reset.setText("Reset");
+                desk.setEnabled(true);
             } else if (State.DRAW == state) {
-                window.desk.setEnabled(false);
-                window.status.update(state.message);
+                desk.setEnabled(false);
+                status.update(state.message);
             } else if (State.WIN == state) {
-                window.desk.setEnabled(false);
+                desk.setEnabled(false);
                 
             } else if (State.ATTEMPT == state) {
-                window.panel.setEnabled(true);
-                window.desk.update(Owner.E, false);
-                window.panel.reset.setText("Start");
+                panel.setEnabled(true);
+                desk.update(Owner.E, false);
+                panel.reset.setText("Start");
             }
-            window.status.update(state == State.WIN ? owner.sname + state.message : state.message);
+            status.update(state == State.WIN ? owner.sName + state.message : state.message);
         }
         void updatePlayer1() {
-            window.panel.player1.setText(pType[0].text);
+            panel.player1.setText(pType[0].text);
         }
         void updatePlayer2() {
-            window.panel.player2.setText(pType[1].text);
-        }
-        Cell[][] getMap() {
-            return window.desk.map;
-        }
-        Cell[] getOrigin() {
-            return window.desk.list;
+            panel.player2.setText(pType[1].text);
         }
     }
 
-    TicTacToe() {
-        hWind = new WinHandle();
-        round = new Round();
-    }
     void togglePlayerAi(int id) {
         pType[id] = pType[id] == PlayerType.HUMAN ? PlayerType.COMPUTER : PlayerType.HUMAN;
     }
@@ -227,10 +387,33 @@ public class TicTacToe {
         }
     }
 
+    public TicTacToe() {
+        super("Tic Tac Toe");
+        int w = 150 * 3;
+        int mh = 30;
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        panel = new MenuPanel(w, mh);
+        desk = new Desk(3, 3);
+        status = new StatusBar(w, mh);
+        setLayout(new BorderLayout());
+        add(panel, BorderLayout.NORTH);
+        add(desk, BorderLayout.CENTER);
+        add(status, BorderLayout.SOUTH);
+        setResizable(false);
+        setSize(450, 510);
+        setVisible(true);
+        desk.update(Owner.E, false);
+        hWind = new WinHandle();
+        round = new Round();
+    }
+
     State state = State.ATTEMPT;
     Owner owner = Owner.X;
 
     final PlayerType[] pType = {PlayerType.HUMAN, PlayerType.HUMAN};
     final Round round;
     final WinHandle hWind;
+    final MenuPanel panel;
+    final Desk desk;
+    final StatusBar status;
 }
