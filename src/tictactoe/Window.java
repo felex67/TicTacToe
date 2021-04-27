@@ -183,7 +183,7 @@ public class Window extends JFrame {
     final StatusBar status;
 
     Window() {
-        super("Window");
+        super("Tic Tac Toe");
         int w = 150 * 3;
         int mh = 30;
         setDefaultCloseOperation(EXIT_ON_CLOSE);
