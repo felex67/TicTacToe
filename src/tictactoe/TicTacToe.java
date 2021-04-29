@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.function.Consumer;
 
+import javax.swing.JMenuItem;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JLabel;
@@ -21,8 +24,8 @@ public class TicTacToe extends JFrame {
 
     enum State {
         ATTEMPT("Game is not started"),
-        PROCESS("Game not finished"),
-        WIN(" wins"),
+        PROCESS("The turn of %s Player (%s)"),
+        WIN("The %s Player (%s) wins"),
         DRAW("Draw"),
         EXIT("");
         State(String message) {
@@ -30,35 +33,82 @@ public class TicTacToe extends JFrame {
         }
         final String message;
     }
-    
+
     enum Owner {
-    
+
         E(" "), X("X"), O("O");
-    
+
         Owner(String name) {
             this.sName = name;
         }
-    
+
         final String sName;
-    }    
+    }
 
     enum PlayerType {
-        HUMAN("Humnan"), COMPUTER("Computer");
+        HUMAN("Human"), COMPUTER("Robot");
         PlayerType(String text) {
             this.text = text;
         }
         final String text;
     }
 
+    static class MenuBar extends JMenuBar {
+        static class MenuGame extends JMenu {
+            MenuGame(String name) {
+                super(name);
+                setName("Menu" + name);
+                setVisible(true);
+
+                JMenuItem[] list = {
+                        hh = new JMenuItem("Human vs. Human"),
+                        hr = new JMenuItem("Human vs. Robot"),
+                        rh = new JMenuItem("Robot vs. Human"),
+                        rr = new JMenuItem("Robot vs. Robot")
+                };
+                exit = new JMenuItem("Exit");
+
+                hh.setName("MenuHumanHuman");
+                hr.setName("MenuHumanRobot");
+                rh.setName("MenuRobotHuman");
+                rr.setName("MenuRobotRobot");
+                exit.setName("MenuExit");
+
+                for (JMenuItem i : list) {
+                    i.setVisible(true);
+                    add(i);
+                }
+
+                addSeparator();
+
+                add(exit);
+                exit.setVisible(true);
+            }
+
+            final JMenuItem hh;
+            final JMenuItem hr;
+            final JMenuItem rh;
+            final JMenuItem rr;
+            final JMenuItem exit;
+        }
+        MenuBar() {
+            super();
+            mGame = new MenuGame("Game");
+            add(mGame);
+            setVisible(true);
+        }
+        final MenuGame mGame;
+    }
+
     static class MenuPanel extends JPanel {
 
         static class Button extends JButton {
             Consumer<Button> handle;
-    
+
             Button(String name, String text) {
                 super(text);
                 handle = null;
-    
+
                 setName(name);
                 setVisible(true);
                 setFocusPainted(false);
@@ -69,16 +119,16 @@ public class TicTacToe extends JFrame {
                 });
             }
         }
-    
+
         MenuPanel(int width, int height) {
             super();
-    
+
             player1 = new Button("ButtonPlayer1", "Human");
             player2 = new Button("ButtonPlayer2", "Human");
             reset = new Button("ButtonStartReset", "Start");
-    
+
             setLayout(new GridLayout(1, 3));
-            
+
             add(player1);
             add(reset);
             add(player2);
@@ -86,38 +136,38 @@ public class TicTacToe extends JFrame {
             setBorder(new EtchedBorder(EtchedBorder.LOWERED));
             setBounds(0, 0, width, height);
         }
-    
+
         @Override
         public void setEnabled(boolean enabled) {
             player1.setEnabled(enabled);
             player2.setEnabled(enabled);
-    
+
             reset.setEnabled(enabled);
-    
+
             super.setEnabled(enabled);
         }
-    
-        Button player1;
-        Button player2;
-        Button reset;
+
+        final Button player1;
+        final Button player2;
+        final Button reset;
     }
-    
+
     static class StatusBar extends JPanel {
-    
+
         StatusBar(int width, int height) {
             super();
             message = new JLabel();
             message.setText("Status");
-            message.setName("LableStatus");
-    
+            message.setName("LabelStatus");
+
             setLayout(new BorderLayout());
             add(message, BorderLayout.SOUTH);
             setBorder(new EtchedBorder(EtchedBorder.LOWERED));
-    
+
             message.setLocation(10, 0);
             message.setVisible(true);
             message.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
-            
+
             setSize(width, height);
             setBounds(0, 0, width, height);
         }
@@ -127,13 +177,13 @@ public class TicTacToe extends JFrame {
         }
         JLabel message;
     }
-    
+
     static class Cell extends JButton {
         final int x;
         final int y;
         Owner owner = Owner.E;
         Consumer<Cell> handle;
-    
+
         Cell(int x, int y, String name) {
             super();
             this.x = x;
@@ -158,14 +208,14 @@ public class TicTacToe extends JFrame {
             setEnabled(b);
         }
     }
-    
+
     static class Desk extends JPanel {
-    
+
         Desk(int tx, int ty) {
             super();
             list = new Cell[tx * ty];
             map = new Cell[tx][ty];
-    
+
             int n = tx * ty;
             setLayout(new GridLayout(tx, ty));
             for (int i = 0; i < n; i++) {
@@ -179,7 +229,7 @@ public class TicTacToe extends JFrame {
             }
             setBorder(new EtchedBorder(EtchedBorder.LOWERED));
         }
-    
+
         @Override
         public void setEnabled(boolean enabled) {
             for (int x = 0; x < 3; x++) {
@@ -189,7 +239,7 @@ public class TicTacToe extends JFrame {
             }
             super.setEnabled(enabled);
         }
-    
+
         @Override
         public void setFont(Font font) {
             if (list != null) {
@@ -199,26 +249,26 @@ public class TicTacToe extends JFrame {
             }
             super.setFont(font);
         }
-    
+
         public void update(Owner owner, boolean b) {
             for (Cell a : list) {
                 a.update(owner, b);
             }
         }
-    
+
         final Cell[][] map;
         final Cell[] list;
     }
-    
-    private class Round {
-    
+
+    class Round {
+
         Round() {
             rand = new Random();
             map = desk.map;
             origin = desk.list;
             reset();
         }
-    
+
         void reset() {
             avail.clear();
             for (Cell x : origin) {
@@ -226,43 +276,59 @@ public class TicTacToe extends JFrame {
                 avail.add(x);
             }
             state = State.ATTEMPT;
+            player = pType[0];
             owner = Owner.X;
             step = 0;
         }
+
         void apply(Cell c) {
             if (null != c && avail.contains(c)) {
                 c.update(owner);
                 avail.remove(c);
             }
         }
+
         void aiMakeMove() {
             apply(avail.get(rand.nextInt(avail.size())));
+            try {
+                Thread.sleep(200L);
+            } catch (Exception e) {
+                System.err.println("Exception: " + e.toString());
+            }
         }
-        boolean checkAi() {
-            return pType[step % 2] == PlayerType.COMPUTER;
-        }
+
         void start() {
-            if (checkAi()) {
+            reset();
+            state = State.PROCESS;
+            hWind.updateState();
+            if (player == PlayerType.COMPUTER) {
                 playRound();
             }
         }
+
         void playRound() {
-            while (true) {
-                if (checkAi()) {
+            while (state == State.PROCESS) {
+                if (player == PlayerType.COMPUTER) {
                     aiMakeMove();
                 }
                 checkBoard();
                 if (State.PROCESS == state) {
-                    ++step;
-                    owner = (Owner.X == owner ? Owner.O : Owner.X);
-                    if (!checkAi()) {
+                    nextStep();
+                    if (player != PlayerType.COMPUTER) {
                         break;
                     }
                 } else {
-                    hWind.update();
+                    hWind.updateState();
                     break;
                 }
             }
+        }
+
+        void nextStep() {
+            ++step;
+            owner = owner == Owner.X ? Owner.O : Owner.X;
+            player = pType[step % 2];
+            hWind.updateStatus();
         }
 
         void checkLines() {
@@ -305,14 +371,14 @@ public class TicTacToe extends JFrame {
             checkLines();
             if (state == State.PROCESS) {
                 checkDia();
-                if (avail.size() <= 0) {
+                if (state == State.PROCESS && avail.size() <= 0) {
                     state = State.DRAW;
                 }
             }
         }
 
         int step = 0;
-    
+
         final Random rand;
         final ArrayList<Cell> avail = new ArrayList<>();
         final Cell[][] map;
@@ -331,8 +397,10 @@ public class TicTacToe extends JFrame {
             });
             for (Cell c : desk.list) {
                 c.handle = x -> {
-                    round.apply(x);
-                    round.playRound();
+                    if (c.owner == Owner.E) {
+                        round.apply(x);
+                        round.playRound();
+                    }
                 };
             }
             panel.player1.handle = x -> {
@@ -344,29 +412,69 @@ public class TicTacToe extends JFrame {
                 updatePlayer2();
             };
             panel.reset.handle = x -> playerClickStartReset();
+            round.reset();
+            state = State.ATTEMPT;
+            updateState();
         }
-        void update() {
+
+        void updateState() {
             if (State.PROCESS == state) {
-                panel.player1.setEnabled(false);
-                panel.player2.setEnabled(false);
-                panel.reset.setText("Reset");
-                desk.setEnabled(true);
+                updateStart();
             } else if (State.DRAW == state) {
-                desk.setEnabled(false);
-                status.update(state.message);
+                updateDraw();
             } else if (State.WIN == state) {
-                desk.setEnabled(false);
-                
+                updateWin();
             } else if (State.ATTEMPT == state) {
-                panel.setEnabled(true);
-                desk.update(Owner.E, false);
-                panel.reset.setText("Start");
+                updateReset();
             }
-            status.update(state == State.WIN ? owner.sName + state.message : state.message);
+
         }
+
+        private void updateReset() {
+            panel.setEnabled(true);
+            panel.reset.setText("Start");
+            desk.update(Owner.E, false);
+            status.update(state.message);
+        }
+
+        private void updateStart() {
+            panel.player1.setEnabled(false);
+            panel.player2.setEnabled(false);
+            panel.reset.setText("Reset");
+            desk.update(Owner.E, true);
+            updateStatus();
+        }
+
+        private void updateWin() {
+            desk.setEnabled(false);
+            status.update(
+                    String.format(
+                            state.message,
+                            player.text,
+                            owner.sName
+                    )
+            );;
+        }
+
+        private void updateDraw() {
+            desk.setEnabled(false);
+            status.update(state.message);
+        }
+
+        void updateStatus() {
+            status.update(
+                    String.format(
+                            State.PROCESS.message,
+                            player.text,
+                            owner.sName
+                    )
+            );
+        }
+
         void updatePlayer1() {
             panel.player1.setText(pType[0].text);
         }
+
         void updatePlayer2() {
             panel.player2.setText(pType[1].text);
         }
@@ -375,15 +483,48 @@ public class TicTacToe extends JFrame {
     void togglePlayerAi(int id) {
         pType[id] = pType[id] == PlayerType.HUMAN ? PlayerType.COMPUTER : PlayerType.HUMAN;
     }
+
     void playerClickStartReset() {
         if (State.ATTEMPT == state) {
-            state = State.PROCESS;
-            hWind.update();
-            round.start();
+            gameStart();
         } else {
-            state = State.ATTEMPT;
-            round.reset();
-            hWind.update();
+            gameReset();
+        }
+    }
+
+    void gameStart() {
+        round.start();
+    }
+
+    void gameReset() {
+        round.reset();
+        state = State.ATTEMPT;
+        hWind.updateState();
+    }
+
+    void initMenu() {
+        menu.mGame.hh.addActionListener(x -> setGameType(PlayerType.HUMAN, PlayerType.HUMAN));
+        menu.mGame.hr.addActionListener(x -> setGameType(PlayerType.HUMAN, PlayerType.COMPUTER));
+        menu.mGame.rh.addActionListener(x -> setGameType(PlayerType.COMPUTER, PlayerType.HUMAN));
+        menu.mGame.rr.addActionListener(x -> setGameType(PlayerType.COMPUTER, PlayerType.COMPUTER));
+        menu.mGame.exit.addActionListener(x -> System.exit(0));
+    }
+
+    void setGameType(PlayerType p1, PlayerType p2) {
+        gameReset();
+        pType[0] = p1;
+        pType[1] = p2;
+        panel.player1.setText(p1.text);
+        panel.player2.setText(p2.text);
+        gameStart();
+    }
+
+    void updatePanel() {
+        if (state == State.ATTEMPT) {
+            panel.player1.setText(pType[0].text);
+            panel.player1.setEnabled(true);
+            panel.player2.setText(pType[1].text);
+            panel.player2.setEnabled(true);
         }
     }
 
@@ -392,27 +533,41 @@ public class TicTacToe extends JFrame {
         int w = 150 * 3;
         int mh = 30;
         setDefaultCloseOperation(EXIT_ON_CLOSE);
+
+        menu = new MenuBar();
+        setJMenuBar(menu);
+        menu.setVisible(true);
         panel = new MenuPanel(w, mh);
         desk = new Desk(3, 3);
         status = new StatusBar(w, mh);
+
+        initMenu();
+
         setLayout(new BorderLayout());
+
         add(panel, BorderLayout.NORTH);
         add(desk, BorderLayout.CENTER);
         add(status, BorderLayout.SOUTH);
+
         setResizable(false);
         setSize(450, 510);
         setVisible(true);
+
         desk.update(Owner.E, false);
-        hWind = new WinHandle();
         round = new Round();
+        hWind = new WinHandle();
     }
 
     State state = State.ATTEMPT;
     Owner owner = Owner.X;
+    PlayerType player = PlayerType.HUMAN;
+    int step = 0;
 
     final PlayerType[] pType = {PlayerType.HUMAN, PlayerType.HUMAN};
     final Round round;
     final WinHandle hWind;
+
+    final MenuBar menu;
     final MenuPanel panel;
     final Desk desk;
     final StatusBar status;
